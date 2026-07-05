@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Project Companion</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Шапка -->
+    <header class="header">
+        <div class="container">
+            <div class="header__inner">
+                <div class="logo">
+                    <span class="logo__icon">🧠</span>
+                    <span class="logo__text">AI Project Companion</span>
+                </div>
+                <nav class="nav">
+                    <a href="#features" class="nav__link">Возможности</a>
+                    <a href="#how-it-works" class="nav__link">Как работает</a>
+                    <a href="#modes" class="nav__link">Режимы</a>
+                    <a href="#pricing" class="nav__link">Цены</a>
+                </nav>
+                <button class="btn btn--primary btn--small">Попробовать</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Главный экран -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero__content">
+                <div class="hero__badge">🚀 Скоро запуск</div>
+                <h1 class="hero__title">
+                    Твой <span class="gradient-text">AI-помощник</span><br>
+                    по ведению проектов
+                </h1>
+                <p class="hero__subtitle">
+                    Загрузи аудио, видео или текст созвона — получи полную расшифровку, 
+                    саммари, список задач и историю проекта. Никаких споров, кто что обещал.
+                </p>
+                <div class="hero__actions">
+                    <button class="btn btn--primary btn--large">Начать бесплатно</button>
+                    <button class="btn btn--secondary btn--large">Узнать больше</button>
+                </div>
+                <div class="hero__stats">
+                    <div class="stat">
+                        <span class="stat__number">0</span>
+                        <span class="stat__label">споров о договорённостях</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat__number">100%</span>
+                        <span class="stat__label">прозрачности проекта</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat__number">1</span>
+                        <span class="stat__label">минута на анализ созвона</span>
+                    </div>
+                </div>
+            </div>
+            <div class="hero__visual">
+                <div class="mockup">
+                    <div class="mockup__header">
+                        <span class="mockup__dot"></span>
+                        <span class="mockup__dot"></span>
+                        <span class="mockup__dot"></span>
+                        <span class="mockup__title">AI Project Companion</span>
+                    </div>
+                    <div class="mockup__body">
+                        <div class="mockup__message mockup__message--in">
+                            <div class="mockup__message-text">Загрузил аудио созвона №12</div>
+                            <div class="mockup__message-time">12:30</div>
+                        </div>
+                        <div class="mockup__message mockup__message--out">
+                            <div class="mockup__message-text">✅ Расшифровка готова</div>
+                            <div class="mockup__message-time">12:31</div>
+                        </div>
+                        <div class="mockup__message mockup__message--out">
+                            <div class="mockup__message-text">📋 Саммари: Обсудили новый функционал...</div>
+                            <div class="mockup__message-time">12:31</div>
+                        </div>
+                        <div class="mockup__message mockup__message--out">
+                            <div class="mockup__message-text">📌 Задачи: 5 новых, 3 изменено</div>
+                            <div class="mockup__message-time">12:31</div>
+                        </div>
+                        <div class="mockup__message mockup__message--out mockup__message--warning">
+                            <div class="mockup__message-text">⚠️ Обнаружено новое требование. Рекомендуется пересогласовать сроки.</div>
+                            <div class="mockup__message-time">12:31</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Возможности -->
+    <section class="features" id="features">
+        <div class="container">
+            <div class="section__header">
+                <h2 class="section__title">Всё, что нужно для прозрачного проекта</h2>
+                <p class="section__subtitle">19+ автоматических отчётов после каждого созвона</p>
+            </div>
+            <div class="features__grid">
+                <div class="feature-card">
+                    <div class="feature-card__icon">🎙️</div>
+                    <h3 class="feature-card__title">Расшифровка по ролям</h3>
+                    <p class="feature-card__desc">Кто что сказал — полная расшифровка с определением участников</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card__icon">📝</div>
+                    <h3 class="feature-card__title">Краткое саммари</h3>
+                    <p class="feature-card__desc">О чём говорили — ёмко и по делу</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card__icon">✅</div>
+                    <h3 class="feature-card__title">Список задач</h3>
+                    <p class="feature-card__desc">Что делает исполнитель, что делает заказчик</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card__icon">🔄</div>
+                    <h3 class="feature-card__title">Что изменилось</h3>
+                    <p class="feature-card__desc">Автоматическое отслеживание изменений требований</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card__icon">⚠️</div>
+                    <h3 class="feature-card__title">Новый объём работ</h3>
+                    <p class="feature-card__desc">AI сам определит, что появилось нового и требует пересогласования</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card__icon">📊</div>
+                    <h3 class="feature-card__title">История проекта</h3>
+                    <p class="feature-card__desc">Каждый созвон — новая версия. Можно сравнить, что изменилось</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card__icon">⚖️</div>
+                    <h3 class="feature-card__title">AI Arbitration</h3>
+                    <p class="feature-card__desc">Независимая память проекта. Кто, когда и о чём договорился</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card__icon">🎯</div>
+                    <h3 class="feature-card__title">Scope Control</h3>
+                    <p class="feature-card__desc">Контроль объёма работ: что добавилось, что исчезло, что изменилось</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Как работает -->
+    <section class="how-it-works" id="how-it-works">
+        <div class="container">
+            <div class="section__header">
+                <h2 class="section__title">Как это работает</h2>
+                <p class="section__subtitle">Три простых шага</p>
+            </div>
+            <div class="steps">
+                <div class="step">
+                    <div class="step__number">1</div>
+                    <div class="step__content">
+                        <h3 class="step__title">Загрузи запись</h3>
+                        <p class="step__desc">Аудио, видео или текст созвона — через Telegram-бота или веб-версию</p>
+                    </div>
+                </div>
+                <div class="step-arrow">→</div>
+                <div class="step">
+                    <div class="step__number">2</div>
+                    <div class="step__content">
+                        <h3 class="step__title">AI анализирует</h3>
+                        <p class="step__desc">Распознаёт речь, определяет участников, сопоставляет с историей проекта</p>
+                    </div>
+                </div>
+                <div class="step-arrow">→</div>
+                <div class="step">
+                    <div class="step__number">3</div>
+                    <div class="step__content">
+                        <h3 class="step__title">Получи результат</h3>
+                        <p class="step__desc">Расшифровка, саммари, задачи, изменения, риски — всё готово за минуту</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Режимы -->
+    <section class="modes" id="modes">
+        <div class="container">
+            <div class="section__header">
+                <h2 class="section__title">Два режима работы</h2>
+                <p class="section__subtitle">Выбери под свой тип проекта</p>
+            </div>
+            <div class="modes__grid">
+                <div class="mode-card mode-card--project">
+                    <div class="mode-card__badge">Популярный</div>
+                    <div class="mode-card__icon">💻</div>
+                    <h3 class="mode-card__title">Project Mode</h3>
+                    <p class="mode-card__desc">Для IT-проектов, разработки, интеграций</p>
+                    <ul class="mode-card__list">
+                        <li>✅ Контроль объёма работ</li>
+                        <li>✅ Отслеживание изменений</li>
+                        <li>✅ AI Arbitration при спорах</li>
+                        <li>✅ Scope Control</li>
+                        <li>✅ Версионирование проекта</li>
+                    </ul>
+                </div>
+                <div class="mode-card mode-card--consulting">
+                    <div class="mode-card__icon">🧑‍⚕️</div>
+                    <h3 class="mode-card__title">Consulting Mode</h3>
+                    <p class="mode-card__desc">Для психологов, коучей, наставников, экспертов</p>
+                    <ul class="mode-card__list">
+                        <li>✅ Саммари консультации</li>
+                        <li>✅ Рекомендации для клиента</li>
+                        <li>✅ План действий</li>
+                        <li>✅ Домашнее задание</li>
+                        <li>✅ Прогресс по сессиям</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Telegram -->
+    <section class="telegram-section">
+        <div class="container">
+            <div class="telegram-card">
+                <div class="telegram-card__icon">📱</div>
+                <h2 class="telegram-card__title">Работает через Telegram</h2>
+                <p class="telegram-card__desc">
+                    Отправь аудио или видео боту — получи готовый отчёт через минуту. 
+                    Всё просто и удобно.
+                </p>
+                <div class="telegram-card__features">
+                    <span>🎤 Аудио</span>
+                    <span>🎥 Видео</span>
+                    <span>📄 Текст</span>
+                </div>
+                <button class="btn btn--primary btn--large">Перейти в бота</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Цены -->
+    <section class="pricing" id="pricing">
+        <div class="container">
+            <div class="section__header">
+                <h2 class="section__title">Простые тарифы</h2>
+                <p class="section__subtitle">Плати только за использование</p>
+            </div>
+            <div class="pricing__grid">
+                <div class="pricing-card">
+                    <h3 class="pricing-card__title">Старт</h3>
+                    <div class="pricing-card__price">Бесплатно</div>
+                    <p class="pricing-card__period">10 созвонов в месяц</p>
+                    <ul class="pricing-card__list">
+                        <li>✅ Расшифровка</li>
+                        <li>✅ Саммари</li>
+                        <li>✅ Список задач</li>
+                        <li>❌ История проекта</li>
+                        <li>❌ AI Arbitration</li>
+                    </ul>
+                    <button class="btn btn--secondary btn--full">Начать</button>
+                </div>
+                <div class="pricing-card pricing-card--popular">
+                    <div class="pricing-card__badge">Рекомендую</div>
+                    <h3 class="pricing-card__title">Профи</h3>
+                    <div class="pricing-card__price">1 000 ₽</div>
+                    <p class="pricing-card__period">в месяц</p>
+                    <ul class="pricing-card__list">
+                        <li>✅ Расшифровка</li>
+                        <li>✅ Саммари</li>
+                        <li>✅ Список задач</li>
+                        <li>✅ История проекта</li>
+                        <li>✅ AI Arbitration</li>
+                        <li>✅ Scope Control</li>
+                        <li>✅ Неограниченно созвонов</li>
+                    </ul>
+                    <button class="btn btn--primary btn--full">Выбрать</button>
+                </div>
+                <div class="pricing-card">
+                    <h3 class="pricing-card__title">Enterprise</h3>
+                    <div class="pricing-card__price">5 000 ₽</div>
+                    <p class="pricing-card__period">в месяц</p>
+                    <ul class="pricing-card__list">
+                        <li>✅ Всё из тарифа Профи</li>
+                        <li>✅ Свой сервер</li>
+                        <li>✅ Свои AI-модели</li>
+                        <li>✅ Интеграция с CRM</li>
+                        <li>✅ Приоритетная поддержка</li>
+                        <li>✅ White-label</li>
+                    </ul>
+                    <button class="btn btn--secondary btn--full">Связаться</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Подвал -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer__inner">
+                <div class="footer__brand">
+                    <span class="logo__icon">🧠</span>
+                    <span class="logo__text">AI Project Companion</span>
+                </div>
+                <p class="footer__desc">AI-помощник по ведению проектов. Никаких споров — только факты.</p>
+                <div class="footer__links">
+                    <a href="#" class="footer__link">Документация</a>
+                    <a href="#" class="footer__link">Telegram</a>
+                    <a href="#" class="footer__link">Поддержка</a>
+                </div>
+                <p class="footer__copy">© 2025 AI Project Companion</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
