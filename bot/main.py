@@ -1,11 +1,14 @@
 # AI Project Companion — Telegram Bot
 """
 Модуль Telegram-бота для AI Project Companion.
-Обрабатывает команды пользователя, принимает файлы и отправляет отчёты.
+Поддерживает два режима:
+- Локальный: long polling (python -m bot.main)
+- Yandex Cloud Functions: webhook (через handler)
 """
 
 import os
 import sys
+import json
 import logging
 
 # Добавляем путь к корню проекта
@@ -13,9 +16,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.types import Message, Update
 from aiogram.utils.markdown import text, bold
-from aiogram.enums import ParseMode
 
 from core.analyzer import ProjectAnalyzer
 from core.transcriber import SpeechTranscriber
@@ -323,10 +325,57 @@ def _format_tasks(tasks: list) -> str:
     return "\n".join(f"• {task}" for task in tasks)
 
 
+# ========== Yandex Cloud Functions Handler ==========
+
+async def process_update(update_data: dict) -> dict:
+    """Обработка входящего обновления от Telegram"""
+    try:
+        # Подключаемся к БД
+        await db.connect()
+
+        # Создаём объект Update из данных
+        telegram_update = Update.model_validate(update_data, context={"bot": bot})
+
+        # Обрабатываем через диспетчер
+        await dp.feed_update(bot, telegram_update)
+
+        return {"statusCode": 200, "body": ""}
+    except Exception as e:
+        logger.error(f"Error processing update: {e}")
+        return {"statusCode": 200, "body": ""}
+    finally:
+        await db.close()
+
+
+def handler(event, context):
+    """
+    Точка входа для Yandex Cloud Functions.
+    Вызывается при каждом POST-запросе от Telegram.
+    """
+    import asyncio
+
+    # Парсим тело запроса
+    body = json.loads(event.get('body', '{}'))
+
+    # Обрабатываем обновление
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    result = loop.run_until_complete(process_update(body))
+    loop.close()
+
+    return result
+
+
+# ========== Local Development ==========
+
 async def main():
-    """Запуск бота"""
-    logger.info("Starting AI Project Companion bot...")
-    await dp.start_polling(bot)
+    """Запуск бота в режиме long polling (для локальной разработки)"""
+    logger.info("Starting AI Project Companion bot in polling mode...")
+    await db.connect()
+    try:
+        await dp.start_polling(bot)
+    finally:
+        await db.close()
 
 
 if __name__ == "__main__":
