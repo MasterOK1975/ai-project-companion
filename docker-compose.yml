@@ -1,0 +1,33 @@
+# AI Project Companion — Docker Compose
+# Запуск: docker-compose up -d
+
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: ai-project-companion-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - db
+    command: python -m bot.main
+
+  db:
+    image: postgres:16-alpine
+    container_name: ai-project-companion-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: aipc
+      POSTGRES_USER: aipc
+      POSTGRES_PASSWORD: aipc_secret
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  pgdata:
