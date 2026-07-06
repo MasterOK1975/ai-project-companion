@@ -24,9 +24,11 @@ class Database:
         """Подключение к БД"""
         if self.database_url.startswith("sqlite"):
             import aiosqlite
-            # Создаём директорию для данных
-            os.makedirs("data", exist_ok=True)
             db_path = self.database_url.replace("sqlite:///", "")
+            # Создаём директорию для БД, если её нет
+            db_dir = os.path.dirname(db_path)
+            if db_dir:
+                os.makedirs(db_dir, exist_ok=True)
             self._conn = await aiosqlite.connect(db_path)
             self._conn.row_factory = aiosqlite.Row
             await self._init_sqlite()

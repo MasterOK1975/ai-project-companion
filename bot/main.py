@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 # Инициализация
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///data/projects.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///tmp/data.db")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -93,7 +93,7 @@ async def cmd_help(message: Message):
             "",
             "1️⃣ Создай проект: /new_project Название проекта",
             "2️⃣ Загрузи аудио/видео созвона или отправь текст",
-            "3️⃣ Дождись анализа ��� я пришлю отчёт",
+            "3️⃣ Дождись анализа — я пришлю отчёт",
             "4️⃣ Смотри историю: /projects",
             "",
             bold("Поддерживаемые форматы:"),
@@ -401,7 +401,7 @@ async def handle_audio_video(message: Message):
                 username=message.from_user.username
             )
 
-        await message.answer("🎙 Распознаю речь...")
+        await message.answer("🎙 Ра��познаю речь...")
 
         text = await transcriber.transcribe(file_bytes)
 
@@ -511,8 +511,10 @@ def handler(event, context):
     """
     import asyncio
 
-    # Парсим тело запроса
-    body = json.loads(event.get('body', '{}'))
+    # Тело запроса может быть как строкой (JSON), так и уже распарсенным dict
+    body = event.get('body', '{}')
+    if isinstance(body, str):
+        body = json.loads(body)
 
     # Обрабатываем обновление
     loop = asyncio.new_event_loop()
