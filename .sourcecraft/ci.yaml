@@ -173,7 +173,7 @@ workflows:
               - |
                 yc config set folder-id $YC_FOLDER_ID
                 echo "Getting service account ID..."
-                SA_ID=$(yc iam service-account list --format json | python3 -c "import sys,json; accounts=json.load(sys.stdin); print([a['id'] for a in accounts if 'functions-cicd-sa' in a['name']][0])")
+                SA_ID=$(yc iam service-account list --format json | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
                 echo "Service account ID: $SA_ID"
                 echo "Deploying container revision..."
                 yc serverless container revision deploy \
