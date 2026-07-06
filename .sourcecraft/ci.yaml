@@ -103,7 +103,7 @@ workflows:
                 if [ -n "$TG_BOT_TOKEN" ] && [ "$TG_BOT_TOKEN" != "YOUR_TG_BOT_TOKEN" ]; then
                     echo "TG_BOT_TOKEN is properly set"
                     echo "Setting webhook..."
-                    curl --request POST --url https://api.telegram.org/bot$TG_BOT_TOKEN/setWebhook?url=https://d5dtns3kp6nsou7cse26.wnq2w1o5.apigw.yandexcloud.net
+                    curl --request POST --url https://api.telegram.org/bot$TG_BOT_TOKEN/setWebhook?url=https://functions.yandexcloud.net/d4eoguqo1scppaunv4l4
                     echo "Webhook set!"
                 else
                     echo "TG_BOT_TOKEN is either not set or equals placeholder value"
@@ -120,3 +120,71 @@ workflows:
               paths:
                 - invoke_url.txt
                 - deployment_location.txt
+
+  deploy-container-workflow:
+    inputs:
+      bot-token:
+        type: string
+        default: "8813413330:AAG9uUueZ8sSi6c56tcds8iK0OIzRHEya8s"
+        description: Your Telegram bot token from BotFather
+      openrouter-key:
+        type: string
+        default: "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"
+        description: Your OpenRouter API key for AI analysis
+    env:
+      YC_DOCKER_REGISTRY_URI: cr.yandex/crpecn8sot1efltgce9h
+      IMAGE_NAME: ai-project-companion
+      YC_SERVERLESS_CONTAINER_NAME: ai-project-companion
+      YC_FOLDER_ID: b1g40t8uqo6unqc4v8tb
+    tasks:
+      - name: build-push-deploy
+        cubes:
+          - name: get-iam-token
+            env:
+              ID_TOKEN: ${{ tokens.SERVICE_CONNECTION_WITH_TOKEN.id_token }}
+              YC_SA_ID: ${{ tokens.SERVICE_CONNECTION_WITH_TOKEN.service_account_id }}
+            image: cr.yandex/sourcecraft/yc-iam:latest
+
+          - name: docker-build-push
+            env:
+              YC_IAM_TOKEN: ${{ cubes.get-iam-token.outputs.IAM_TOKEN }}
+            image:
+              name: cr.yandex/sourcecraft/yc-cli:latest
+              entrypoint: ""
+            script:
+              - |
+                echo "Installing docker..."
+                apt-get update && apt-get install -y docker.io > /dev/null 2>&1
+                echo "Logging to Container Registry..."
+                echo "$YC_IAM_TOKEN" | docker login --username iam --password-stdin cr.yandex
+                echo "Building image..."
+                docker build --tag $YC_DOCKER_REGISTRY_URI/$IMAGE_NAME:latest --platform linux/amd64 .
+                echo "Pushing image..."
+                docker push $YC_DOCKER_REGISTRY_URI/$IMAGE_NAME:latest
+                echo "Done!"
+
+          - name: deploy-container
+            env:
+              YC_IAM_TOKEN: ${{ cubes.get-iam-token.outputs.IAM_TOKEN }}
+            image:
+              name: cr.yandex/sourcecraft/yc-cli:latest
+              entrypoint: ""
+            script:
+              - |
+                yc config set folder-id $YC_FOLDER_ID
+                echo "Getting service account ID..."
+                SA_ID=$(yc iam service-account list --format json | python3 -c "import sys,json; accounts=json.load(sys.stdin); print([a['id'] for a in accounts if 'functions-cicd-sa' in a['name']][0])")
+                echo "Service account ID: $SA_ID"
+                echo "Deploying container revision..."
+                yc serverless container revision deploy \
+                  --container-name $YC_SERVERLESS_CONTAINER_NAME \
+                  --image $YC_DOCKER_REGISTRY_URI/$IMAGE_NAME:latest \
+                  --service-account-id $SA_ID \
+                  --environment BOT_TOKEN=${{ inputs.bot-token }},OPENROUTER_API_KEY=${{ inputs.openrouter-key }},DATABASE_URL=sqlite:////tmp/data.db
+                echo "Container deployed!"
+
+          - name: get-outputs
+            script:
+              - |
+                echo "Container deployed successfully!"
+                echo "Container name: $YC_SERVERLESS_CONTAINER_NAME"

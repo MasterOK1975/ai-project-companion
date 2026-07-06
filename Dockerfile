@@ -18,5 +18,5 @@ COPY . .
 # Создание директории для данных
 RUN mkdir -p data
 
-# Запуск бота
-CMD ["python", "-m", "bot.main"]
+# Запуск бота через run.py (long polling + health check)
+CMD ["python", "run.py"]
