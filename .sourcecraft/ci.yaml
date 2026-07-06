@@ -179,6 +179,8 @@ workflows:
                   --container-name $YC_SERVERLESS_CONTAINER_NAME \
                   --image $YC_DOCKER_REGISTRY_URI/$IMAGE_NAME:latest \
                   --service-account-id $YC_SERVICE_ACCOUNT_ID \
+                  --port 8080 \
+                  --execution-timeout 30s \
                   --environment BOT_TOKEN=${{ inputs.bot-token }} \
                   --environment OPENROUTER_API_KEY=${{ inputs.openrouter-key }} \
                   --environment DATABASE_URL=sqlite:////tmp/data.db
