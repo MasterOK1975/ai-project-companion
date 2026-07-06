@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 # Инициализация
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///tmp/data.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:////tmp/data.db")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -93,7 +93,7 @@ async def cmd_help(message: Message):
             "",
             "1️⃣ Создай проект: /new_project Название проекта",
             "2️⃣ Загрузи аудио/видео созвона или отправь текст",
-            "3️⃣ Дождись анализа — я п��ишлю отчёт",
+            "3️⃣ Дождись анализа — я пришлю отчёт",
             "4️⃣ Смотри историю: /projects",
             "",
             bold("Поддерживаемые форматы:"),
@@ -276,7 +276,7 @@ async def cmd_analyze_chat(message: Message):
             "Пример:\n"
             "/analyze_chat Клиент: Привет! Нужен сайт для магазина\n"
             "Исполнитель: Здравствуйте! Расскажите подробнее...\n\n"
-            "Желательно обозначать участников как ��Клиент:» и «Исполнитель:».\n"
+            "Желательно обозначать участников как «Клиент:» и «Исполнитель:».\n"
             "Можно также просто скопировать переписку целиком."
         )
         return
