@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 """
 AI Project Companion — Container Entry Point.
-Запускает бота в режиме long polling + HTTP health check для Serverless Containers.
+Запускает aiohttp HTTP-сервер для приёма вебхуков от Telegram.
 """
+
 import os
 import sys
-import asyncio
+import json
 import logging
-from http.server import HTTPServer, BaseHTTPRequestHandler
 
 # Добавляем путь к корню проекта
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from bot.main import main as run_bot
+from aiohttp import web
+
+from bot.main import process_update, bot, dp, db
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -20,38 +22,60 @@ logger = logging.getLogger(__name__)
 PORT = int(os.getenv("PORT", "8080"))
 
 
-class HealthCheckHandler(BaseHTTPRequestHandler):
-    """Простой HTTP-сервер для health check от Yandex Cloud."""
-
-    def do_get(self):
-        self.send_response(200)
-        self.send_header("Content-Type", "text/plain")
-        self.end_headers()
-        self.wfile.write(b"OK")
-
-    def log_message(self, format, *args):
-        logger.info(f"Health check: {format % args}")
+async def handle_health(request):
+    """Health check для Yandex Cloud."""
+    return web.Response(text="OK")
 
 
-def run_health_server():
-    """Запускает HTTP-сервер health check в отдельном потоке."""
-    server = HTTPServer(("0.0.0.0", PORT), HealthCheckHandler)
-    logger.info(f"Health check server running on port {PORT}")
-    server.serve_forever()
+async def handle_webhook(request):
+    """Обработка входящего вебхука от Telegram."""
+    try:
+        body = await request.json()
+        logger.info(f"Received update: {list(body.keys()) if isinstance(body, dict) else 'not dict'}")
+
+        # Подключаемся к БД
+        await db.connect()
+
+        # Используем существующую логику обработки из bot/main.py
+        from aiogram.types import Update
+        telegram_update = Update.model_validate(body, context={"bot": bot})
+        await dp.feed_update(bot, telegram_update)
+
+        return web.Response(text="OK")
+    except Exception as e:
+        logger.error(f"Error processing webhook: {e}", exc_info=True)
+        return web.Response(text="OK")
+    finally:
+        await db.close()
 
 
-def main():
-    """Запускает health check сервер и бота."""
-    import threading
+async def on_startup(app):
+    """Действия при запуске приложения."""
+    logger.info("Starting AI Project Companion webhook server...")
+    await db.connect()
+    logger.info("Database connected")
 
-    # Запускаем health check в отдельном потоке
-    health_thread = threading.Thread(target=run_health_server, daemon=True)
-    health_thread.start()
 
-    # Запускаем бота в режиме long polling
-    logger.info("Starting bot in long polling mode...")
-    asyncio.run(run_bot())
+async def on_shutdown(app):
+    """Действия при остановке приложения."""
+    logger.info("Shutting down...")
+    await db.close()
+    logger.info("Database closed")
+
+
+def create_app():
+    """Создание и настройка aiohttp приложения."""
+    app = web.Application()
+
+    app.on_startup.append(on_startup)
+    app.on_shutdown.append(on_shutdown)
+
+    app.router.add_get("/", handle_health)
+    app.router.add_post("/", handle_webhook)
+
+    return app
 
 
 if __name__ == "__main__":
-    main()
+    app = create_app()
+    web.run_app(app, host="0.0.0.0", port=PORT)
