@@ -515,16 +515,34 @@ def handler(event, context):
     if event is None:
         event = {}
 
+    logger.info(f"Handler called, event keys: {list(event.keys()) if isinstance(event, dict) else 'not dict'}")
+
     # Тело запроса может быть как строкой (JSON), так и уже распарсенным dict
     body = event.get('body', '{}')
-    if isinstance(body, str):
-        body = json.loads(body)
+
+    # Если body пустая строка — используем весь event как тело
+    if isinstance(body, str) and not body.strip():
+        logger.info("Body is empty, using event as body")
+        body = event
+
+    # Если body уже dict — используем как есть
+    if isinstance(body, dict):
+        update_data = body
+    else:
+        # Парсим строку JSON
+        try:
+            update_data = json.loads(body)
+        except (json.JSONDecodeError, TypeError) as e:
+            logger.error(f"Failed to parse body: {e}, body type={type(body)}, body={str(body)[:500]}")
+            return {"statusCode": 200, "body": "ok"}
 
     # Обрабатываем обновление
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    result = loop.run_until_complete(process_update(body))
-    loop.close()
+    try:
+        result = loop.run_until_complete(process_update(update_data))
+    finally:
+        loop.close()
 
     return result
 
