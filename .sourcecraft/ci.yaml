@@ -48,6 +48,7 @@ workflows:
               YC_FUNCTION_RUNTIME: python312
               YC_FUNCTION_ENTRYPOINT: bot.main.handler
               SOURCE_PATH: "."
+              YC_FUNCTION_TIMEOUT: 30
               ENVIRONMENT: "BOT_TOKEN=${{ inputs.bot-token }},OPENROUTER_API_KEY=${{ inputs.openrouter-key }},DATABASE_URL=sqlite:///tmp/data.db"
               PUBLIC: true
             image: cr.yandex/sourcecraft/yc-function:latest

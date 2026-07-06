@@ -93,7 +93,7 @@ async def cmd_help(message: Message):
             "",
             "1️⃣ Создай проект: /new_project Название проекта",
             "2️⃣ Загрузи аудио/видео созвона или отправь текст",
-            "3️⃣ Дождись анализа — я пришлю отчёт",
+            "3️⃣ Дождись анализа — я п��ишлю отчёт",
             "4️⃣ Смотри историю: /projects",
             "",
             bold("Поддерживаемые форматы:"),
@@ -276,7 +276,7 @@ async def cmd_analyze_chat(message: Message):
             "Пример:\n"
             "/analyze_chat Клиент: Привет! Нужен сайт для магазина\n"
             "Исполнитель: Здравствуйте! Расскажите подробнее...\n\n"
-            "Желательно обозначать участников как «Клиент:» и «Исполнитель:».\n"
+            "Желательно обозначать участников как ��Клиент:» и «Исполнитель:».\n"
             "Можно также просто скопировать переписку целиком."
         )
         return
@@ -401,7 +401,7 @@ async def handle_audio_video(message: Message):
                 username=message.from_user.username
             )
 
-        await message.answer("🎙 Ра��познаю речь...")
+        await message.answer("🎙 Распознаю речь...")
 
         text = await transcriber.transcribe(file_bytes)
 
@@ -510,6 +510,10 @@ def handler(event, context):
     Вызывается при каждом POST-запросе от Telegram.
     """
     import asyncio
+
+    # Защита от None event
+    if event is None:
+        event = {}
 
     # Тело запроса может быть как строкой (JSON), так и уже распарсенным dict
     body = event.get('body', '{}')
