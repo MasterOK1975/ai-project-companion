@@ -4,6 +4,15 @@
 Поддерживает два режима:
 - Локальный: long polling (python -m bot.main)
 - Yandex Cloud Functions: webhook (через handler)
+
+Команды:
+- /start — приветствие
+- /help — подробная справка
+- /new_project — создать новый проект
+- /projects — список проектов
+- /select_project — выбрать проект
+- /analyze_tz — анализ технического задания
+- /analyze_chat — анализ переписки с заказчиком
 """
 
 import os
@@ -21,6 +30,8 @@ from aiogram.utils.markdown import text, bold
 
 from core.analyzer import ProjectAnalyzer
 from core.transcriber import SpeechTranscriber
+from core.tz_analyzer import TZAnalyzer
+from core.chat_analyzer import ChatAnalyzer
 from db.database import Database
 
 # Настройка логирования
@@ -39,6 +50,8 @@ dp = Dispatcher()
 db = Database(DATABASE_URL)
 transcriber = SpeechTranscriber()
 analyzer = ProjectAnalyzer(api_key=OPENROUTER_API_KEY)
+tz_analyzer = TZAnalyzer(api_key=OPENROUTER_API_KEY)
+chat_analyzer = ChatAnalyzer(api_key=OPENROUTER_API_KEY)
 
 
 @dp.message(Command("start"))
@@ -56,14 +69,16 @@ async def cmd_start(message: Message):
             "✅ Составить список задач",
             "📊 Отследить изменения в проекте",
             "💾 Сохранить историю проекта",
-            "",
-            "Просто отправь мне аудио, видео или текст созвона!",
+            "📄 Проанализировать техническое задание",
+            "💬 Сделать мини-брифинг из переписки с клиентом",
             "",
             "Команды:",
             "/start — показать это сообщение",
             "/help — подробная справка",
             "/new_project — создать новый проект",
             "/projects — список проектов",
+            "/analyze_tz — анализ технического задания",
+            "/analyze_chat — анализ переписки с заказчиком",
             sep="\n"
         )
     )
@@ -78,7 +93,7 @@ async def cmd_help(message: Message):
             "",
             "1️⃣ Создай проект: /new_project Название проекта",
             "2️⃣ Загрузи аудио/видео созвона или отправь текст",
-            "3️⃣ Дождись анализа — я пришлю отчёт",
+            "3️⃣ Дождись анализа ��� я пришлю отчёт",
             "4️⃣ Смотри историю: /projects",
             "",
             bold("Поддерживаемые форматы:"),
@@ -86,7 +101,21 @@ async def cmd_help(message: Message):
             "🎬 Видео: MP4, AVI, MOV",
             "📄 Текст: просто отправь сообщение",
             "",
-            bold("Что я формирую:"),
+            bold("Анализ ТЗ:"),
+            "📄 /analyze_tz — вставь текст ТЗ и получи разбор:",
+            "   • саммари и видение реализации",
+            "   • этапы работ и зоны ответственности",
+            "   • открытые вопросы и риски",
+            "   • рекомендации по улучшению ТЗ",
+            "",
+            bold("Анализ переписки:"),
+            "💬 /analyze_chat — отправь переписку с клиентом:",
+            "   • саммари и информация о клиенте",
+            "   • договорённости и задачи",
+            "   • открытые вопросы и следующие шаги",
+            "   • рекомендации по коммуникации",
+            "",
+            bold("Что я формирую для созвонов:"),
             "📝 Полная расшифровка по ролям",
             "📋 Краткое саммари",
             "✅ Список задач (исполнитель / заказчик)",
@@ -177,6 +206,127 @@ async def cmd_select_project(message: Message):
             sep="\n"
         )
     )
+
+
+@dp.message(Command("analyze_tz"))
+async def cmd_analyze_tz(message: Message):
+    """Анализ технического задания"""
+    parts = message.text.split(maxsplit=1)
+    if len(parts) < 2:
+        await message.answer(
+            "📄 Отправь текст технического задания после команды.\n\n"
+            "Пример:\n"
+            "/analyze_tz Название проекта: Разработка мобильного приложения...\n\n"
+            "Можно скопировать текст из Google Docs, PDF, Word или любого другого источника."
+        )
+        return
+
+    tz_text = parts[1].strip()
+    await message.answer("📄 Анализирую техническое задание...")
+
+    try:
+        result = await tz_analyzer.analyze(tz_text)
+
+        report = text(
+            bold("📄 Анализ технического задания"),
+            "",
+            bold("📋 Саммари:"),
+            result.get('summary', ''),
+            "",
+            bold("👁 Видение реализации:"),
+            result.get('vision', ''),
+            "",
+            bold("📅 Этапы работ:"),
+            _format_list(result.get('stages', [])),
+            "",
+            bold("👥 Зоны ответственности:"),
+            result.get('responsibilities', ''),
+            "",
+            bold("❓ Открытые вопросы:"),
+            result.get('open_questions', ''),
+            "",
+            bold("⚠️ Риски:"),
+            result.get('risks', ''),
+            "",
+            bold("💡 Рекомендации:"),
+            result.get('recommendations', ''),
+            "",
+            bold("📊 Оценка сложности:"),
+            result.get('estimated_complexity', ''),
+            "",
+            bold("📌 Отсутствующие разделы:"),
+            _format_list(result.get('missing_sections', [])),
+            sep="\n"
+        )
+
+        await message.answer(report)
+
+    except Exception as e:
+        logger.error(f"Error analyzing TZ: {e}")
+        await message.answer("❌ Произошла ошибка при анализе ТЗ. Попробуй ещё раз.")
+
+
+@dp.message(Command("analyze_chat"))
+async def cmd_analyze_chat(message: Message):
+    """Анализ переписки с заказчиком"""
+    parts = message.text.split(maxsplit=1)
+    if len(parts) < 2:
+        await message.answer(
+            "💬 Отправь текст переписки после команды.\n\n"
+            "Пример:\n"
+            "/analyze_chat Клиент: Привет! Нужен сайт для магазина\n"
+            "Исполнитель: Здравствуйте! Расскажите подробнее...\n\n"
+            "Желательно обозначать участников как «Клиент:» и «Исполнитель:».\n"
+            "Можно также просто скопировать переписку целиком."
+        )
+        return
+
+    chat_text = parts[1].strip()
+    await message.answer("💬 Анализирую переписку...")
+
+    try:
+        result = await chat_analyzer.analyze(chat_text)
+
+        report = text(
+            bold("💬 Мини-брифинг по переписке"),
+            "",
+            bold("📋 Саммари:"),
+            result.get('summary', ''),
+            "",
+            bold("👤 О клиенте:"),
+            result.get('client_info', ''),
+            "",
+            bold("✅ Договорённости:"),
+            result.get('agreed', ''),
+            "",
+            bold("📌 Задачи исполнителя:"),
+            _format_list(result.get('executor_tasks', [])),
+            "",
+            bold("📌 Задачи заказчика:"),
+            _format_list(result.get('client_tasks', [])),
+            "",
+            bold("❓ Открытые вопросы:"),
+            result.get('open_questions', ''),
+            "",
+            bold("⚖️ Требуются решения:"),
+            result.get('decisions_needed', ''),
+            "",
+            bold("🚀 Следующие шаги:"),
+            result.get('next_steps', ''),
+            "",
+            bold("⚠️ Риски:"),
+            result.get('risks', ''),
+            "",
+            bold("💡 Рекомендации:"),
+            result.get('recommendations', ''),
+            sep="\n"
+        )
+
+        await message.answer(report)
+
+    except Exception as e:
+        logger.error(f"Error analyzing chat: {e}")
+        await message.answer("❌ Произошла ошибка при анализе переписки. Попробуй ещё раз.")
 
 
 @dp.message()
@@ -323,6 +473,13 @@ def _format_tasks(tasks: list) -> str:
     if not tasks:
         return "Нет задач"
     return "\n".join(f"• {task}" for task in tasks)
+
+
+def _format_list(items: list) -> str:
+    """Форматирование списка"""
+    if not items:
+        return "Нет"
+    return "\n".join(f"• {item}" for item in items)
 
 
 # ========== Yandex Cloud Functions Handler ==========
