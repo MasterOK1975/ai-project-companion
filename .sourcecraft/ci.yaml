@@ -174,20 +174,39 @@ workflows:
             script:
               - |
                 yc config set folder-id $YC_FOLDER_ID
-                echo "Updating YC CLI..."
-                curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -i /opt/yc -n
-                export PATH="/opt/yc/bin:$PATH"
-                echo "Deploying container revision with port 8080..."
+                echo "Deploying container revision..."
                 yc serverless container revision deploy \
                   --container-name $YC_SERVERLESS_CONTAINER_NAME \
                   --image $YC_DOCKER_REGISTRY_URI/$IMAGE_NAME:latest \
                   --service-account-id $YC_SERVICE_ACCOUNT_ID \
-                  --port 8080 \
                   --execution-timeout 30s \
                   --environment BOT_TOKEN=${{ inputs.bot-token }} \
                   --environment OPENROUTER_API_KEY=${{ inputs.openrouter-key }} \
                   --environment DATABASE_URL=sqlite:////tmp/data.db
                 echo "Container deployed!"
+
+          - name: set-container-port
+            env:
+              YC_IAM_TOKEN: ${{ cubes.get-iam-token.outputs.IAM_TOKEN }}
+              YC_FOLDER_ID: ${{ tokens.SERVICE_CONNECTION_WITH_TOKEN.folder_id }}
+            image:
+              name: cr.yandex/sourcecraft/yc-cli:latest
+              entrypoint: ""
+            script:
+              - |
+                yc config set folder-id $YC_FOLDER_ID
+                echo "Setting container port to 8080 via API..."
+                CONTAINER_ID=$(yc serverless container get --name $YC_SERVERLESS_CONTAINER_NAME --format json | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+                LATEST_REVISION=$(yc serverless container revision list --container-id $CONTAINER_ID --format json --limit 1 | python3 -c "import sys,json; print(json.load(sys.stdin)[0]['id'])")
+                echo "Latest revision ID: $LATEST_REVISION"
+                # Use API to set port on the revision
+                curl -s -X PATCH \
+                  "https://serverless-containers.api.cloud.yandex.net/containers/v1/revisions/$LATEST_REVISION" \
+                  -H "Authorization: Bearer $YC_IAM_TOKEN" \
+                  -H "Content-Type: application/json" \
+                  -d '{"runtime":{"port":8080}}'
+                echo ""
+                echo "Port set!"
 
           - name: get-outputs
             script:
