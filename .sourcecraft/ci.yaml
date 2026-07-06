@@ -196,10 +196,9 @@ workflows:
               - |
                 yc config set folder-id $YC_FOLDER_ID
                 echo "Setting container port to 8080 via API..."
-                CONTAINER_ID=$(yc serverless container get --name $YC_SERVERLESS_CONTAINER_NAME --format json | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
-                LATEST_REVISION=$(yc serverless container revision list --container-id $CONTAINER_ID --format json --limit 1 | python3 -c "import sys,json; print(json.load(sys.stdin)[0]['id'])")
+                CONTAINER_ID=$(yc serverless container get --name $YC_SERVERLESS_CONTAINER_NAME --format json | grep -o '"id":"[^"]*"' | head -1 | sed 's/"id":"//;s/"//')
+                LATEST_REVISION=$(yc serverless container revision list --container-id $CONTAINER_ID --format json --limit 1 | grep -o '"id":"[^"]*"' | head -1 | sed 's/"id":"//;s/"//')
                 echo "Latest revision ID: $LATEST_REVISION"
-                # Use API to set port on the revision
                 curl -s -X PATCH \
                   "https://serverless-containers.api.cloud.yandex.net/containers/v1/revisions/$LATEST_REVISION" \
                   -H "Authorization: Bearer $YC_IAM_TOKEN" \
