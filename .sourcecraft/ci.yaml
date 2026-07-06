@@ -198,7 +198,11 @@ workflows:
                 echo "Setting container port to 8080 via API..."
                 CONTAINER_ID=$(yc serverless container get --name $YC_SERVERLESS_CONTAINER_NAME | grep "^id:" | sed 's/^id: //')
                 echo "Container ID: $CONTAINER_ID"
-                LATEST_REVISION=$(yc serverless container revision list --container-id $CONTAINER_ID --limit 1 | grep "^id:" | sed 's/^id: //')
+                # Get latest revision ID via API (JSON format)
+                LATEST_REVISION=$(curl -s \
+                  -H "Authorization: Bearer $YC_IAM_TOKEN" \
+                  "https://serverless-containers.api.cloud.yandex.net/containers/v1/containers/$CONTAINER_ID" \
+                  | grep -o '"latest_revision_id":"[^"]*"' | sed 's/"latest_revision_id":"//;s/"//')
                 echo "Latest revision ID: $LATEST_REVISION"
                 curl -s -X PATCH \
                   "https://serverless-containers.api.cloud.yandex.net/containers/v1/revisions/$LATEST_REVISION" \
