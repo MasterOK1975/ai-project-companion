@@ -166,21 +166,22 @@ workflows:
           - name: deploy-container
             env:
               YC_IAM_TOKEN: ${{ cubes.get-iam-token.outputs.IAM_TOKEN }}
+              YC_FOLDER_ID: ${{ tokens.SERVICE_CONNECTION_WITH_TOKEN.folder_id }}
+              YC_SERVICE_ACCOUNT_ID: ${{ tokens.SERVICE_CONNECTION_WITH_TOKEN.service_account_id }}
             image:
               name: cr.yandex/sourcecraft/yc-cli:latest
               entrypoint: ""
             script:
               - |
                 yc config set folder-id $YC_FOLDER_ID
-                echo "Getting service account ID..."
-                SA_ID=$(yc iam service-account list --format json | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
-                echo "Service account ID: $SA_ID"
                 echo "Deploying container revision..."
                 yc serverless container revision deploy \
                   --container-name $YC_SERVERLESS_CONTAINER_NAME \
                   --image $YC_DOCKER_REGISTRY_URI/$IMAGE_NAME:latest \
-                  --service-account-id $SA_ID \
-                  --environment BOT_TOKEN=${{ inputs.bot-token }},OPENROUTER_API_KEY=${{ inputs.openrouter-key }},DATABASE_URL=sqlite:////tmp/data.db
+                  --service-account-id $YC_SERVICE_ACCOUNT_ID \
+                  --environment BOT_TOKEN=${{ inputs.bot-token }} \
+                  --environment OPENROUTER_API_KEY=${{ inputs.openrouter-key }} \
+                  --environment DATABASE_URL=sqlite:////tmp/data.db
                 echo "Container deployed!"
 
           - name: get-outputs
