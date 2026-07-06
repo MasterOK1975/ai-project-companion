@@ -174,7 +174,10 @@ workflows:
             script:
               - |
                 yc config set folder-id $YC_FOLDER_ID
-                echo "Deploying container revision..."
+                echo "Updating YC CLI..."
+                curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -i /opt/yc -n
+                export PATH="/opt/yc/bin:$PATH"
+                echo "Deploying container revision with port 8080..."
                 yc serverless container revision deploy \
                   --container-name $YC_SERVERLESS_CONTAINER_NAME \
                   --image $YC_DOCKER_REGISTRY_URI/$IMAGE_NAME:latest \
