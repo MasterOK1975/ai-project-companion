@@ -44,6 +44,7 @@ workflows:
               YC_SA_ID: ${{ tokens.SERVICE_CONNECTION_WITH_TOKEN.service_account_id }}
               YC_FOLDER_ID: ${{ tokens.SERVICE_CONNECTION_WITH_TOKEN.folder_id }}
               YC_FUNCTION_NAME: ${{ cubes.format-name.outputs.function_name }}
+              YC_FUNCTION_MEMORY: 256m
               YC_FUNCTION_RUNTIME: python312
               YC_FUNCTION_ENTRYPOINT: bot.main.handler
               SOURCE_PATH: "."
