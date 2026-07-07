@@ -1,14 +1,12 @@
 # AI Project Companion — Core: Speech Transcriber
 """
 Модуль распознавания речи из аудио и видео файлов.
-Использует OpenAI Whisper API для транскрибации.
+Использует Groq Whisper API (бесплатно, быстро).
 """
 
 import os
-import io
 import logging
-import tempfile
-from typing import Optional, BinaryIO
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -17,12 +15,13 @@ class SpeechTranscriber:
     """Распознавание речи из аудио/видео файлов"""
 
     def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
-        self.model = "whisper-1"
+        self.api_key = api_key or os.getenv("GROQ_API_KEY")
+        self.model = "whisper-large-v3"
+        self.base_url = "https://api.groq.com/openai/v1/audio/transcriptions"
 
     async def transcribe(self, file_bytes: bytes, filename: str = "audio.mp3") -> Optional[str]:
         """
-        Распознавание речи из аудио/видео файла.
+        Распознавание речи из аудио/видео файла через Groq Whisper.
 
         Args:
             file_bytes: Бинарные данные файла
@@ -32,27 +31,24 @@ class SpeechTranscriber:
             str: Распознанный текст или None при ошибке
         """
         try:
-            # Пробуем через OpenAI Whisper API
             if self.api_key:
-                return await self._transcribe_openai(file_bytes, filename)
+                return await self._transcribe_groq(file_bytes, filename)
 
-            # Если нет API-ключа — заглушка
-            logger.warning("No API key for speech recognition")
-            return "[Распознавание речи недоступно — не указан API-ключ OpenAI]"
+            logger.warning("No GROQ_API_KEY set")
+            return "[Распознавание речи недоступно — не указан GROQ_API_KEY]"
 
         except Exception as e:
             logger.error(f"Transcription error: {e}")
             return None
 
-    async def _transcribe_openai(self, file_bytes: bytes, filename: str) -> str:
-        """Транскрибация через OpenAI Whisper API"""
+    async def _transcribe_groq(self, file_bytes: bytes, filename: str) -> str:
+        """Транскрибация через Groq Whisper API"""
         import aiohttp
 
         headers = {
             "Authorization": f"Bearer {self.api_key}"
         }
 
-        # Создаём multipart form data
         data = aiohttp.FormData()
         data.add_field(
             "file",
@@ -66,21 +62,13 @@ class SpeechTranscriber:
 
         async with aiohttp.ClientSession() as session:
             async with session.post(
-                "https://api.openai.com/v1/audio/transcriptions",
+                self.base_url,
                 headers=headers,
                 data=data
             ) as resp:
                 if resp.status != 200:
                     error_text = await resp.text()
-                    raise Exception(f"Whisper API error {resp.status}: {error_text}")
+                    raise Exception(f"Groq Whisper error {resp.status}: {error_text}")
 
                 result = await resp.json()
                 return result.get("text", "")
-
-    async def transcribe_local(self, file_bytes: bytes) -> Optional[str]:
-        """
-        Локальная транскрибация (для будущего использования с локальными моделями).
-        Заглушка — будет реализовано при использовании локальных моделей.
-        """
-        logger.info("Local transcription not yet implemented")
-        return None
