@@ -19,6 +19,7 @@ import os
 import sys
 import json
 import logging
+import asyncio
 
 # Добавляем путь к корню проекта
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -52,6 +53,19 @@ transcriber = SpeechTranscriber()
 analyzer = ProjectAnalyzer(api_key=OPENROUTER_API_KEY)
 tz_analyzer = TZAnalyzer(api_key=OPENROUTER_API_KEY)
 chat_analyzer = ChatAnalyzer(api_key=OPENROUTER_API_KEY)
+
+# Единый event loop для всех вызовов Yandex Cloud Functions
+# (создаётся один раз при холодном старте и переиспользуется)
+_shared_loop: asyncio.AbstractEventLoop = None
+
+
+def _get_loop() -> asyncio.AbstractEventLoop:
+    """Возвращает единый event loop, создавая его при первом вызове"""
+    global _shared_loop
+    if _shared_loop is None or _shared_loop.is_closed():
+        _shared_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(_shared_loop)
+    return _shared_loop
 
 
 @dp.message(Command("start"))
@@ -508,9 +522,9 @@ def handler(event, context):
     """
     Точка входа для Yandex Cloud Functions.
     Вызывается при каждом POST-запросе от Telegram.
+    Использует единый event loop, созданный при холодном старте,
+    чтобы избежать ошибки "Event loop is closed" на повторных вызовах.
     """
-    import asyncio
-
     # Защита от None event
     if event is None:
         event = {}
@@ -536,13 +550,13 @@ def handler(event, context):
             logger.error(f"Failed to parse body: {e}, body type={type(body)}, body={str(body)[:500]}")
             return {"statusCode": 200, "body": "ok"}
 
-    # Обрабатываем обновление
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+    # Используем единый event loop вместо создания нового на каждый вызов
+    loop = _get_loop()
     try:
         result = loop.run_until_complete(process_update(update_data))
     finally:
-        loop.close()
+        # НЕ закрываем loop — он будет переиспользован следующими вызовами
+        pass
 
     return result
 
@@ -560,5 +574,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    import asyncio
     asyncio.run(main())
