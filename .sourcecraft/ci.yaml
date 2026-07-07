@@ -12,25 +12,6 @@ tokens:
 
 workflows:
   push-to-github:
-    inputs:
-      github-token:
-        type: string
-        required: true
-        description: Your GitHub personal access token with repo scope
-      github-username:
-        type: string
-        required: true
-        default: "MasterOK1975"
-        description: Your GitHub username
-      github-repo:
-        type: string
-        required: true
-        default: "ai-project-companion"
-        description: GitHub repository name
-    env:
-      GH_TOKEN: ${{ inputs.github-token }}
-      GH_USER: ${{ inputs.github-username }}
-      GH_REPO: ${{ inputs.github-repo }}
     tasks:
       - name: push-task
         cubes:
@@ -41,10 +22,10 @@ workflows:
                 git config --global user.name "SourceCraft CI"
                 git config --global user.email "ci@sourcecraft.dev"
                 echo "Adding GitHub remote..."
-                git remote add github "https://${GH_USER}:${GH_TOKEN}@github.com/${GH_USER}/${GH_REPO}.git"
+                git remote add github "https://MasterOK1975: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@github.com/MasterOK1975/ai-project-companion.git"
                 echo "Pushing to GitHub..."
                 git push github HEAD:refs/heads/main --force
-                echo "Done! Code pushed to https://github.com/${GH_USER}/${GH_REPO}"
+                echo "Done! Code pushed to https://github.com/MasterOK1975/ai-project-companion"
 
   deploy-bot-workflow:
     inputs:
