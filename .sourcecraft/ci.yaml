@@ -27,6 +27,10 @@ workflows:
         required: true
         default: "ai-project-companion"
         description: GitHub repository name
+    env:
+      GH_TOKEN: ${{ inputs.github-token }}
+      GH_USER: ${{ inputs.github-username }}
+      GH_REPO: ${{ inputs.github-repo }}
     tasks:
       - name: push-task
         cubes:
@@ -37,10 +41,10 @@ workflows:
                 git config --global user.name "SourceCraft CI"
                 git config --global user.email "ci@sourcecraft.dev"
                 echo "Adding GitHub remote..."
-                git remote add github https://${{ inputs.github-username }}:${{ inputs.github-token }}@github.com/${{ inputs.github-username }}/${{ inputs.github-repo }}.git
+                git remote add github "https://${GH_USER}:${GH_TOKEN}@github.com/${GH_USER}/${GH_REPO}.git"
                 echo "Pushing to GitHub..."
                 git push -u github main --force
-                echo "Done! Code pushed to https://github.com/${{ inputs.github-username }}/${{ inputs.github-repo }}"
+                echo "Done! Code pushed to https://github.com/${GH_USER}/${GH_REPO}"
 
   deploy-bot-workflow:
     inputs:
