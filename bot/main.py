@@ -68,6 +68,31 @@ def _get_loop() -> asyncio.AbstractEventLoop:
     return _shared_loop
 
 
+async def _send_long_message(message: Message, text_content: str):
+    """Отправляет длинное сообщение, разбивая на части по 4000 символов"""
+    MAX_LEN = 4000
+    if len(text_content) <= MAX_LEN:
+        await message.answer(text_content)
+        return
+
+    parts = []
+    current = ""
+    for line in text_content.split("\n"):
+        if len(current) + len(line) + 1 > MAX_LEN:
+            parts.append(current)
+            current = line
+        else:
+            if current:
+                current += "\n" + line
+            else:
+                current = line
+    if current:
+        parts.append(current)
+
+    for part in parts:
+        await message.answer(part)
+
+
 @dp.message(Command("start"))
 async def cmd_start(message: Message):
     """Приветственное сообщение"""
@@ -273,7 +298,7 @@ async def cmd_analyze_tz(message: Message):
             sep="\n"
         )
 
-        await message.answer(report)
+        await _send_long_message(message, report)
 
     except Exception as e:
         logger.error(f"Error analyzing TZ: {e}")
@@ -336,7 +361,7 @@ async def cmd_analyze_chat(message: Message):
             sep="\n"
         )
 
-        await message.answer(report)
+        await _send_long_message(message, report)
 
     except Exception as e:
         logger.error(f"Error analyzing chat: {e}")
@@ -479,7 +504,7 @@ async def send_analysis_report(message: Message, result: dict, version: int):
         sep="\n"
     )
 
-    await message.answer(report)
+    await _send_long_message(message, report)
 
 
 def _format_tasks(tasks: list) -> str:
