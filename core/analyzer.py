@@ -33,13 +33,13 @@ SYSTEM_PROMPT = """Ты — AI Project Companion, профессиональны
 13. **next_meeting** — что необходимо обсудить на следующем созвоне
 
 ВАЖНО: Если есть история предыдущих созвонов — сравнивай и показывай отличия.
-Формат ответа — ТОЛЬКО JSON, без лишнего текста."""
+Формат ��твета — ТОЛЬКО JSON, без лишнего текста."""
 
 
 class ProjectAnalyzer:
     """Анализатор созвонов через AI-модели"""
 
-    def __init__(self, api_key: str, model: str = "mistralai/mistral-7b-instruct"):
+    def __init__(self, api_key: str, model: str = "mistralai/mistral-7b-instruct:free"):
         self.api_key = api_key
         self.model = model
         self.base_url = "https://openrouter.ai/api/v1/chat/completions"
