@@ -37,7 +37,7 @@ CHAT_SYSTEM_PROMPT = """Ты — AI Project Companion, профессионал�
 class ChatAnalyzer:
     """Анализатор переписки с заказчиком"""
 
-    def __init__(self, api_key: str, model: str = "mistralai/mistral-7b-instruct:free"):
+    def __init__(self, api_key: str, model: str = "nvidia/nemotron-3-ultra-550b-a55b:free"):
         self.api_key = api_key
         self.model = model
         self.base_url = "https://openrouter.ai/api/v1/chat/completions"
