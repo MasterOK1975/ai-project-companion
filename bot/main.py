@@ -18,7 +18,6 @@
 import os
 import sys
 import json
-import io
 import logging
 import asyncio
 
@@ -33,7 +32,6 @@ from aiogram.types import Message, Update
 from aiogram.utils.markdown import text, bold
 
 from telethon import TelegramClient
-from telethon.utils import resolve_bot_file_id
 
 from core.analyzer import ProjectAnalyzer
 from core.transcriber import SpeechTranscriber
@@ -365,7 +363,7 @@ async def process_tz_text(message: Message, state: FSMContext):
         result = await tz_analyzer.analyze(tz_text)
 
         report = text(
-            bold("📄 Анализ техниче��кого задания"),
+            bold("📄 Анализ технического задания"),
             "",
             bold("📋 Саммари:"),
             result.get('summary', ''),
@@ -569,21 +567,18 @@ async def handle_audio_video(message: Message):
     await message.answer(f"✅ {file_type.capitalize()} получен, начинаю обработку...")
 
     try:
-        if message.audio:
-            file_id = message.audio.file_id
-        elif message.voice:
-            file_id = message.voice.file_id
-        else:
-            file_id = message.video.file_id
-
         # Скачиваем через Telethon (MTProto) — нет лимита 20 MB
+        # Telethon находит сообщение по chat_id и message_id, затем скачивает медиа
         if not telethon_client.is_connected():
             await telethon_client.start(bot_token=BOT_TOKEN)
 
-        location = resolve_bot_file_id(file_id)
-        buf = io.BytesIO()
-        await telethon_client.download_file(location, file=buf)
-        file_bytes = buf.getvalue()
+        chat = await telethon_client.get_entity(message.chat.id)
+        msg = await telethon_client.get_messages(chat, ids=message.message_id)
+        file_bytes = await telethon_client.download_media(msg, file=bytes)
+
+        if not file_bytes:
+            await message.answer("❌ Не удалось скачать файл.")
+            return
 
         project = await db.get_active_project(user_id)
         if not project:
