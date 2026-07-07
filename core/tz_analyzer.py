@@ -36,7 +36,7 @@ TZ_SYSTEM_PROMPT = """Ты — AI Project Companion, профессиональ�
 class TZAnalyzer:
     """Анализатор технических заданий"""
 
-    def __init__(self, api_key: str, model: str = "nvidia/nemotron-3-ultra-550b-a55b:free"):
+    def __init__(self, api_key: str, model: str = "google/gemini-2.0-flash-exp:free"):
         self.api_key = api_key
         self.model = model
         self.base_url = "https://openrouter.ai/api/v1/chat/completions"
@@ -96,11 +96,19 @@ class TZAnalyzer:
 
         async with aiohttp.ClientSession() as session:
             async with session.post(self.base_url, headers=headers, json=payload) as resp:
-                if resp.status != 200:
-                    error_text = await resp.text()
-                    raise Exception(f"API error {resp.status}: {error_text}")
-
                 data = await resp.json()
+
+                # OpenRouter может вернуть ошибку в теле ответа даже при 200
+                if "error" in data:
+                    err = data["error"]
+                    raise Exception(f"OpenRouter error: {err.get('message', 'unknown')} (code: {err.get('code', 'unknown')})")
+
+                if resp.status != 200:
+                    raise Exception(f"API error {resp.status}: {data}")
+
+                if "choices" not in data:
+                    raise Exception(f"OpenRouter response missing 'choices': {json.dumps(data, ensure_ascii=False)[:500]}")
+
                 return data['choices'][0]['message']['content']
 
     def _parse_response(self, response: str) -> dict:
