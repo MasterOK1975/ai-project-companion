@@ -11,6 +11,37 @@ tokens:
     scope: org
 
 workflows:
+  push-to-github:
+    inputs:
+      github-token:
+        type: string
+        required: true
+        description: Your GitHub personal access token with repo scope
+      github-username:
+        type: string
+        required: true
+        default: "MasterOK1975"
+        description: Your GitHub username
+      github-repo:
+        type: string
+        required: true
+        default: "ai-project-companion"
+        description: GitHub repository name
+    tasks:
+      - name: push-task
+        cubes:
+          - name: push-to-github
+            script:
+              - |
+                echo "Configuring git..."
+                git config --global user.name "SourceCraft CI"
+                git config --global user.email "ci@sourcecraft.dev"
+                echo "Adding GitHub remote..."
+                git remote add github https://${{ inputs.github-username }}:${{ inputs.github-token }}@github.com/${{ inputs.github-username }}/${{ inputs.github-repo }}.git
+                echo "Pushing to GitHub..."
+                git push -u github main --force
+                echo "Done! Code pushed to https://github.com/${{ inputs.github-username }}/${{ inputs.github-repo }}"
+
   deploy-bot-workflow:
     inputs:
       bot-username:
