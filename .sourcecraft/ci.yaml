@@ -12,6 +12,11 @@ tokens:
 
 workflows:
   push-to-github:
+    inputs:
+      github-token:
+        type: string
+        required: true
+        description: Your GitHub personal access token (classic) with repo scope
     tasks:
       - name: push-task
         cubes:
@@ -22,7 +27,7 @@ workflows:
                 git config --global user.name "SourceCraft CI"
                 git config --global user.email "ci@sourcecraft.dev"
                 echo "Adding GitHub remote..."
-                git remote add github "https://MasterOK1975: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@github.com/MasterOK1975/ai-project-companion.git"
+                git remote add github "https://MasterOK1975:${{ inputs.github-token }}@github.com/MasterOK1975/ai-project-companion.git"
                 echo "Pushing to GitHub..."
                 git push github HEAD:refs/heads/main --force
                 echo "Done! Code pushed to https://github.com/MasterOK1975/ai-project-companion"
