@@ -231,15 +231,32 @@ workflows:
                 echo ""
                 echo "Container is now public!"
 
+          - name: get-container-url
+            env:
+              YC_IAM_TOKEN: ${{ cubes.get-iam-token.outputs.IAM_TOKEN }}
+              YC_FOLDER_ID: ${{ tokens.SERVICE_CONNECTION_WITH_TOKEN.folder_id }}
+            image:
+              name: cr.yandex/sourcecraft/yc-cli:latest
+              entrypoint: ""
+            script:
+              - |
+                yc config set folder-id $YC_FOLDER_ID
+                echo "Getting container URL..."
+                CONTAINER_URL=$(yc serverless container get --name $YC_SERVERLESS_CONTAINER_NAME | grep "^url:" | sed 's/^url: //')
+                echo "Container URL: $CONTAINER_URL"
+                echo "container_url=$CONTAINER_URL" >> $SOURCECRAFT_OUTPUT
+
           - name: register-webhook
             env:
               TG_BOT_TOKEN: ${{ inputs.bot-token }}
+              CONTAINER_URL: ${{ cubes.get-container-url.outputs.container_url }}
             script:
               - |
                 if [ -n "$TG_BOT_TOKEN" ] && [ "$TG_BOT_TOKEN" != "YOUR_TG_BOT_TOKEN" ]; then
                     echo "TG_BOT_TOKEN is properly set"
                     echo "Setting webhook to container URL..."
-                    curl --request POST --url https://api.telegram.org/bot$TG_BOT_TOKEN/setWebhook?url=https://bbamlqupq67albdnauua.containers.yandexcloud.net/webhook
+                    echo "Container URL: $CONTAINER_URL"
+                    curl --request POST --url https://api.telegram.org/bot$TG_BOT_TOKEN/setWebhook?url=${CONTAINER_URL}/
                     echo "Webhook set!"
                 else
                     echo "TG_BOT_TOKEN is either not set or equals placeholder value"
@@ -250,4 +267,4 @@ workflows:
               - |
                 echo "Container deployed successfully!"
                 echo "Container name: $YC_SERVERLESS_CONTAINER_NAME"
-                echo "Container URL: https://bbamlqupq67albdnauua.containers.yandexcloud.net"
+                echo "Container URL: ${{ cubes.get-container-url.outputs.container_url }}"
