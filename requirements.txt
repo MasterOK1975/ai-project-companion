@@ -4,3 +4,5 @@ aiohttp==3.9.3
 python-dotenv==1.0.1
 # База данных (SQLite для разработки и Yandex Cloud Functions)
 aiosqlite==0.19.0
+# MTProto клиент для скачивания файлов >20 MB (Telegram Bot API лимит)
+Telethon==1.36.0

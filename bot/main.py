@@ -18,19 +18,22 @@
 import os
 import sys
 import json
+import io
 import logging
 import asyncio
 
 # Добавляем путь к корню проекта
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import aiohttp
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, Update
 from aiogram.utils.markdown import text, bold
+
+from telethon import TelegramClient
+from telethon.utils import resolve_bot_file_id
 
 from core.analyzer import ProjectAnalyzer
 from core.transcriber import SpeechTranscriber
@@ -47,8 +50,16 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:////tmp/data.db")
 
+# Telethon — MTProto клиент для скачивания файлов >20 MB
+# (Bot API ограничен 20 MB, MTProto позволяет до 2 ГБ)
+TELEGRAM_API_ID = int(os.getenv("TELEGRAM_API_ID", "2040"))
+TELEGRAM_API_HASH = os.getenv("TELEGRAM_API_HASH", "b18441a1ff607e10a989891a5462e627")
+
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
+
+# Telethon клиент (ленивая инициализация — подключается при первом скачивании)
+telethon_client = TelegramClient('bot_session', TELEGRAM_API_ID, TELEGRAM_API_HASH)
 
 # Инициализация компонентов
 db = Database(DATABASE_URL)
@@ -104,18 +115,6 @@ async def _send_long_message(message: Message, text_content: str):
 
     for part in parts:
         await message.answer(part)
-
-
-async def _download_file(file_path: str) -> bytes:
-    """
-    Скачивает файл с серверов Telegram по прямому URL.
-    Не имеет ограничения 20 MB (в отличие от bot.download_file).
-    """
-    url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}"
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as resp:
-            resp.raise_for_status()
-            return await resp.read()
 
 
 @dp.message(Command("start"))
@@ -366,7 +365,7 @@ async def process_tz_text(message: Message, state: FSMContext):
         result = await tz_analyzer.analyze(tz_text)
 
         report = text(
-            bold("📄 Анализ технического задания"),
+            bold("📄 Анализ техниче��кого задания"),
             "",
             bold("📋 Саммари:"),
             result.get('summary', ''),
@@ -577,9 +576,14 @@ async def handle_audio_video(message: Message):
         else:
             file_id = message.video.file_id
 
-        file = await bot.get_file(file_id)
-        # Скачиваем через прямой URL — нет ограничения 20 MB
-        file_bytes = await _download_file(file.file_path)
+        # Скачиваем через Telethon (MTProto) — нет лимита 20 MB
+        if not telethon_client.is_connected():
+            await telethon_client.start(bot_token=BOT_TOKEN)
+
+        location = resolve_bot_file_id(file_id)
+        buf = io.BytesIO()
+        await telethon_client.download_file(location, file=buf)
+        file_bytes = buf.getvalue()
 
         project = await db.get_active_project(user_id)
         if not project:
