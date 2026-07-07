@@ -40,14 +40,10 @@ workflows:
                 echo "Configuring git..."
                 git config --global user.name "SourceCraft CI"
                 git config --global user.email "ci@sourcecraft.dev"
-                echo "Current branch:"
-                git branch --show-current
-                echo "All branches:"
-                git branch -a
                 echo "Adding GitHub remote..."
                 git remote add github "https://${GH_USER}:${GH_TOKEN}@github.com/${GH_USER}/${GH_REPO}.git"
                 echo "Pushing to GitHub..."
-                git push -u github --all --force
+                git push github HEAD:main --force
                 echo "Done! Code pushed to https://github.com/${GH_USER}/${GH_REPO}"
 
   deploy-bot-workflow:
