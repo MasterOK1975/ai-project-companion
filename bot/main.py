@@ -25,7 +25,9 @@ import asyncio
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from aiogram import Bot, Dispatcher, types, F
-from aiogram.filters import Command
+from aiogram.filters import Command, StateFilter
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, Update
 from aiogram.utils.markdown import text, bold
 
@@ -54,8 +56,18 @@ analyzer = ProjectAnalyzer(api_key=OPENROUTER_API_KEY)
 tz_analyzer = TZAnalyzer(api_key=OPENROUTER_API_KEY)
 chat_analyzer = ChatAnalyzer(api_key=OPENROUTER_API_KEY)
 
+# Состояния для пошагового взаимодействия
+class ProjectStates(StatesGroup):
+    waiting_for_name = State()
+
+class TZStates(StatesGroup):
+    waiting_for_text = State()
+
+class ChatStates(StatesGroup):
+    waiting_for_text = State()
+
 # Единый event loop для всех вызовов Yandex Cloud Functions
-# (создаётся один раз при холодном старте и переиспользуется)
+# (создаётся один раз при холодном старте и переис��ользуется)
 _shared_loop: asyncio.AbstractEventLoop = None
 
 
@@ -167,17 +179,39 @@ async def cmd_help(message: Message):
 
 
 @dp.message(Command("new_project"))
-async def cmd_new_project(message: Message):
-    """Создание нового проекта"""
+async def cmd_new_project(message: Message, state: FSMContext):
+    """Создание нового проекта — пошагово"""
     parts = message.text.split(maxsplit=1)
-    if len(parts) < 2:
-        await message.answer(
-            "📝 Укажи название проекта после команды.\n"
-            "Пример: /new_project Разработка сайта"
-        )
-        return
+    if len(parts) >= 2:
+        # Если название передано сразу — создаём
+        project_name = parts[1].strip()
+        user_id = str(message.from_user.id)
 
-    project_name = parts[1].strip()
+        project = await db.create_project(
+            user_id=user_id,
+            name=project_name,
+            username=message.from_user.username
+        )
+
+        await message.answer(
+            text(
+                bold(f"✅ Проект «{project_name}» создан!"),
+                f"ID проекта: {project['id']}",
+                "",
+                "Теперь отправь мне аудио, видео или текст созвона.",
+                sep="\n"
+            )
+        )
+    else:
+        # Запрашиваем название
+        await state.set_state(ProjectStates.waiting_for_name)
+        await message.answer("📝 Введите название нового проекта:")
+
+
+@dp.message(ProjectStates.waiting_for_name)
+async def process_project_name(message: Message, state: FSMContext):
+    """Обработка введённого названия проекта"""
+    project_name = message.text.strip()
     user_id = str(message.from_user.id)
 
     project = await db.create_project(
@@ -185,6 +219,8 @@ async def cmd_new_project(message: Message):
         name=project_name,
         username=message.from_user.username
     )
+
+    await state.clear()
 
     await message.answer(
         text(
@@ -206,7 +242,7 @@ async def cmd_projects(message: Message):
     if not projects:
         await message.answer(
             "📭 У тебя пока нет проектов.\n"
-            "Создай первый: /new_project Название"
+            "Создай первый: /new_project"
         )
         return
 
@@ -248,19 +284,69 @@ async def cmd_select_project(message: Message):
 
 
 @dp.message(Command("analyze_tz"))
-async def cmd_analyze_tz(message: Message):
-    """Анализ технического задания"""
+async def cmd_analyze_tz(message: Message, state: FSMContext):
+    """Анализ технического задания — пошагово"""
     parts = message.text.split(maxsplit=1)
-    if len(parts) < 2:
+    if len(parts) >= 2:
+        # Если текст передан сразу — анализируем
+        tz_text = parts[1].strip()
+        await message.answer("📄 Анализирую техническое задание...")
+
+        try:
+            result = await tz_analyzer.analyze(tz_text)
+
+            report = text(
+                bold("📄 Анализ технического задания"),
+                "",
+                bold("📋 Саммари:"),
+                result.get('summary', ''),
+                "",
+                bold("👁 Видение реализации:"),
+                result.get('vision', ''),
+                "",
+                bold("📅 Этапы работ:"),
+                _format_list(result.get('stages', [])),
+                "",
+                bold("👥 Зоны ответственности:"),
+                result.get('responsibilities', ''),
+                "",
+                bold("❓ Открытые вопросы:"),
+                result.get('open_questions', ''),
+                "",
+                bold("⚠️ Риски:"),
+                result.get('risks', ''),
+                "",
+                bold("💡 Рекомендации:"),
+                result.get('recommendations', ''),
+                "",
+                bold("📊 Оценка сложности:"),
+                result.get('estimated_complexity', ''),
+                "",
+                bold("📌 Отсутствующие разделы:"),
+                _format_list(result.get('missing_sections', [])),
+                sep="\n"
+            )
+
+            await _send_long_message(message, report)
+
+        except Exception as e:
+            logger.error(f"Error analyzing TZ: {e}")
+            await message.answer("❌ Произошла ошибка при анализе ТЗ. Попробуй ещё раз.")
+    else:
+        # Запрашиваем текст ТЗ
+        await state.set_state(TZStates.waiting_for_text)
         await message.answer(
-            "📄 Отправь текст технического задания после команды.\n\n"
-            "Пример:\n"
-            "/analyze_tz Название проекта: Разработка мобильного приложения...\n\n"
+            "📄 Отправьте текст технического задания.\n\n"
             "Можно скопировать текст из Google Docs, PDF, Word или любого другого источника."
         )
-        return
 
-    tz_text = parts[1].strip()
+
+@dp.message(TZStates.waiting_for_text)
+async def process_tz_text(message: Message, state: FSMContext):
+    """Обработка введённого текста ТЗ"""
+    tz_text = message.text.strip()
+    await state.clear()
+
     await message.answer("📄 Анализирую техническое задание...")
 
     try:
@@ -306,21 +392,73 @@ async def cmd_analyze_tz(message: Message):
 
 
 @dp.message(Command("analyze_chat"))
-async def cmd_analyze_chat(message: Message):
-    """Анализ переписки с заказчиком"""
+async def cmd_analyze_chat(message: Message, state: FSMContext):
+    """Анализ переписки с заказчиком — пошагово"""
     parts = message.text.split(maxsplit=1)
-    if len(parts) < 2:
+    if len(parts) >= 2:
+        # Если текст передан сразу — анализируем
+        chat_text = parts[1].strip()
+        await message.answer("💬 Анализирую переписку...")
+
+        try:
+            result = await chat_analyzer.analyze(chat_text)
+
+            report = text(
+                bold("💬 Мини-брифинг по переписке"),
+                "",
+                bold("📋 Саммари:"),
+                result.get('summary', ''),
+                "",
+                bold("👤 О клиенте:"),
+                result.get('client_info', ''),
+                "",
+                bold("✅ Договорённости:"),
+                result.get('agreed', ''),
+                "",
+                bold("📌 Задачи исполнителя:"),
+                _format_list(result.get('executor_tasks', [])),
+                "",
+                bold("📌 Задачи заказчика:"),
+                _format_list(result.get('client_tasks', [])),
+                "",
+                bold("❓ Открытые вопросы:"),
+                result.get('open_questions', ''),
+                "",
+                bold("⚖️ Требуются решения:"),
+                result.get('decisions_needed', ''),
+                "",
+                bold("🚀 Следующие шаги:"),
+                result.get('next_steps', ''),
+                "",
+                bold("⚠️ Риски:"),
+                result.get('risks', ''),
+                "",
+                bold("💡 Рекомендации:"),
+                result.get('recommendations', ''),
+                sep="\n"
+            )
+
+            await _send_long_message(message, report)
+
+        except Exception as e:
+            logger.error(f"Error analyzing chat: {e}")
+            await message.answer("❌ Произошла ошибка при анализе переписки. Попробуй ещё раз.")
+    else:
+        # Запрашиваем текст переписки
+        await state.set_state(ChatStates.waiting_for_text)
         await message.answer(
-            "💬 Отправь текст переписки после команды.\n\n"
-            "Пример:\n"
-            "/analyze_chat Клиент: Привет! Нужен сайт для магазина\n"
-            "Исполнитель: Здравствуйте! Расскажите подробнее...\n\n"
+            "💬 Отправьте текст переписки.\n\n"
             "Желательно обозначать участников как «Клиент:» и «Исполнитель:».\n"
             "Можно также просто скопировать переписку целиком."
         )
-        return
 
-    chat_text = parts[1].strip()
+
+@dp.message(ChatStates.waiting_for_text)
+async def process_chat_text(message: Message, state: FSMContext):
+    """Обработка введённого текста переписки"""
+    chat_text = message.text.strip()
+    await state.clear()
+
     await message.answer("💬 Анализирую переписку...")
 
     try:
@@ -370,7 +508,7 @@ async def cmd_analyze_chat(message: Message):
 
 @dp.message(F.text)
 async def handle_text(message: Message):
-    """Обработка текстовых сообщений"""
+    """Обработка текстовых сообщений (не команд)"""
     if message.text.startswith("/"):
         return
 
@@ -428,6 +566,9 @@ async def handle_audio_video(message: Message):
 
         file = await bot.get_file(file_id)
         file_bytes = await bot.download_file(file.file_path)
+        # download_file возвращает BufferedInputFile, читаем как bytes
+        if hasattr(file_bytes, 'read'):
+            file_bytes = file_bytes.read()
 
         project = await db.get_active_project(user_id)
         if not project:
