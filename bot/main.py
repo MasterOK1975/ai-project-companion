@@ -24,7 +24,7 @@ import asyncio
 # Добавляем путь к корню проекта
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from aiogram import Bot, Dispatcher, types
+from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.types import Message, Update
 from aiogram.utils.markdown import text, bold
@@ -368,13 +368,10 @@ async def cmd_analyze_chat(message: Message):
         await message.answer("❌ Произошла ошибка при анализе переписки. Попробуй ещё раз.")
 
 
-@dp.message()
+@dp.message(F.text)
 async def handle_text(message: Message):
     """Обработка текстовых сообщений"""
-    if message.text and message.text.startswith("/"):
-        return
-
-    if not message.text:
+    if message.text.startswith("/"):
         return
 
     user_id = str(message.from_user.id)
@@ -412,12 +409,9 @@ async def handle_text(message: Message):
         await message.answer("❌ Произошла ошибка при анализе. Попробуй ещё раз.")
 
 
-@dp.message()
+@dp.message(F.audio | F.video | F.voice)
 async def handle_audio_video(message: Message):
     """Обработка аудио и видео файлов"""
-    if not message.audio and not message.video and not message.voice:
-        return
-
     user_id = str(message.from_user.id)
     file_type = "аудио" if message.audio or message.voice else "видео"
 
