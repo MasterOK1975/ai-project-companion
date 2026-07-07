@@ -380,7 +380,7 @@ async def handle_text(message: Message):
     user_id = str(message.from_user.id)
     text_content = message.text
 
-    await message.answer("🧠 Анализирую текст созвона...")
+    await message.answer("✅ Текст получен, начинаю анализ...")
 
     try:
         project = await db.get_active_project(user_id)
@@ -390,6 +390,8 @@ async def handle_text(message: Message):
                 name=f"Проект от {message.date.strftime('%d.%m.%Y')}",
                 username=message.from_user.username
             )
+
+        await message.answer("🧠 Анализирую текст созвона...")
 
         result = await analyzer.analyze_meeting(
             text=text_content,
@@ -419,7 +421,8 @@ async def handle_audio_video(message: Message):
     user_id = str(message.from_user.id)
     file_type = "аудио" if message.audio or message.voice else "видео"
 
-    await message.answer(f"🎵 Получил {file_type}. Начинаю обработку...")
+    # Мгновенное подтверждение получения
+    await message.answer(f"✅ {file_type.capitalize()} получен, начинаю обработку...")
 
     try:
         if message.audio:
