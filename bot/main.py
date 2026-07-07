@@ -24,6 +24,7 @@ import asyncio
 # Добавляем путь к корню проекта
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import aiohttp
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
@@ -67,7 +68,7 @@ class ChatStates(StatesGroup):
     waiting_for_text = State()
 
 # Единый event loop для всех вызовов Yandex Cloud Functions
-# (создаётся один раз при холодном старте и переис��ользуется)
+# (создаётся один раз при холодном старте и переиспользуется)
 _shared_loop: asyncio.AbstractEventLoop = None
 
 
@@ -103,6 +104,18 @@ async def _send_long_message(message: Message, text_content: str):
 
     for part in parts:
         await message.answer(part)
+
+
+async def _download_file(file_path: str) -> bytes:
+    """
+    Скачивает файл с серверов Telegram по прямому URL.
+    Не имеет ограничения 20 MB (в отличие от bot.download_file).
+    """
+    url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}"
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            resp.raise_for_status()
+            return await resp.read()
 
 
 @dp.message(Command("start"))
@@ -565,10 +578,8 @@ async def handle_audio_video(message: Message):
             file_id = message.video.file_id
 
         file = await bot.get_file(file_id)
-        file_bytes = await bot.download_file(file.file_path)
-        # download_file возвращает BufferedInputFile, читаем как bytes
-        if hasattr(file_bytes, 'read'):
-            file_bytes = file_bytes.read()
+        # Скачиваем через прямой URL — нет ограничения 20 MB
+        file_bytes = await _download_file(file.file_path)
 
         project = await db.get_active_project(user_id)
         if not project:
