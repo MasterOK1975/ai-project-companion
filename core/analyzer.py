@@ -22,7 +22,7 @@ SYSTEM_PROMPT = """Ты — AI Project Companion, профессиональны
 2. **summary** — краткое саммари (о чём говорили, 3-5 предложений)
 3. **executor_tasks** — список задач для исполнителя (массив строк)
 4. **client_tasks** — список задач для заказчика (массив строк)
-5. **agreed** — что было согла��овано отдельным блоком
+5. **agreed** — что было согласовано отдельным блоком
 6. **changes** — что изменилось по сравнению с предыдущими созвонами
 7. **new_requirements** — что является новым объёмом работ (если появилась задача, которой раньше не было — напиши "Обнаружено новое требование проекта. Рекомендуется пересогласовать стоимость и сроки.")
 8. **scope_in** — что входит в текущий этап
@@ -39,7 +39,7 @@ SYSTEM_PROMPT = """Ты — AI Project Companion, профессиональны
 class ProjectAnalyzer:
     """Анализатор созвонов через AI-модели"""
 
-    def __init__(self, api_key: str, model: str = "google/gemini-2.0-flash-exp:free"):
+    def __init__(self, api_key: str, model: str = "mistralai/mistral-7b-instruct:free"):
         self.api_key = api_key
         self.model = model
         self.base_url = "https://openrouter.ai/api/v1/chat/completions"
