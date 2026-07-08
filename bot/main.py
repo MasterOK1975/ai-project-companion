@@ -58,7 +58,8 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 # Telethon клиент (ленивая инициализация — подключается при первом скачивании)
-telethon_client = TelegramClient('bot_session', TELEGRAM_API_ID, TELEGRAM_API_HASH)
+# Сессия в /tmp — render.com не даёт писать в корень
+telethon_client = TelegramClient('/tmp/bot_session', TELEGRAM_API_ID, TELEGRAM_API_HASH)
 
 # Инициализация компонентов
 db = Database(DATABASE_URL)
@@ -161,7 +162,7 @@ async def cmd_help(message: Message):
             bold("Поддерживаемые форматы:"),
             "🎵 Аудио: MP3, WAV, OGG, M4A",
             "🎬 Видео: MP4, AVI, MOV",
-            "📄 Текст: п��осто отправь сообщение",
+            "📄 Текст: просто отправь сообщение",
             "",
             bold("Анализ ТЗ:"),
             "📄 /analyze_tz — вставь текст ТЗ и получи разбор:",
