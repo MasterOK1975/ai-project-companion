@@ -39,7 +39,7 @@ SYSTEM_PROMPT = """Ты — AI Project Companion, профессиональны
 class ProjectAnalyzer:
     """Анализатор созвонов через AI-модели"""
 
-    def __init__(self, api_key: str, model: str = "google/gemini-2.0-flash-exp:free"):
+    def __init__(self, api_key: str, model: str = "openrouter/free"):
         self.api_key = api_key
         self.model = model
         self.base_url = "https://openrouter.ai/api/v1/chat/completions"
