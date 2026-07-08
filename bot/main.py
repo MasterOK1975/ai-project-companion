@@ -20,6 +20,7 @@ import sys
 import json
 import logging
 import asyncio
+import tempfile
 
 # Добавляем путь к корню проекта
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -568,13 +569,24 @@ async def handle_audio_video(message: Message):
 
     try:
         # Скачиваем через Telethon (MTProto) — нет лимита 20 MB
-        # Telethon находит сообщение по chat_id и message_id, затем скачивает медиа
+        # Скачиваем во временный файл на диск, чтобы не убить память на render.com
         if not telethon_client.is_connected():
             await telethon_client.start(bot_token=BOT_TOKEN)
 
         chat = await telethon_client.get_entity(message.chat.id)
         msg = await telethon_client.get_messages(chat, ids=message.message_id)
-        file_bytes = await telethon_client.download_media(msg, file=bytes)
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.input') as tmp:
+            tmp_path = tmp.name
+            await telethon_client.download_media(msg, file=tmp_path)
+
+        with open(tmp_path, 'rb') as f:
+            file_bytes = f.read()
+
+        try:
+            os.unlink(tmp_path)
+        except Exception:
+            pass
 
         if not file_bytes:
             await message.answer("❌ Не удалось скачать файл.")
@@ -620,14 +632,23 @@ async def handle_audio_video(message: Message):
 
 async def send_analysis_report(message: Message, result: dict, version: int):
     """Отправка отчёта пользователю"""
+    # transcript может быть строкой или массивом объектов
+    transcript = result.get('transcript', '')
+    if isinstance(transcript, list):
+        transcript = '\n'.join(
+            f"{item.get('role', '') or item.get('speaker', '')}: {item.get('text', '')}"
+            for item in transcript
+        )
+    transcript_preview = (transcript[:500] + '...') if len(transcript) > 500 else transcript
+
     report = text(
         bold(f"📊 Отчёт по созвону (Версия {version})"),
         "",
         bold("📝 Расшифровка:"),
-        result.get('transcript', '')[:500] + "..." if len(result.get('transcript', '')) > 500 else result.get('transcript', ''),
+        transcript_preview,
         "",
         bold("📋 Саммари:"),
-        result.get('summary', ''),
+        _safe_str(result.get('summary', '')),
         "",
         bold("✅ Задачи исполнителя:"),
         _format_tasks(result.get('executor_tasks', [])),
@@ -636,36 +657,51 @@ async def send_analysis_report(message: Message, result: dict, version: int):
         _format_tasks(result.get('client_tasks', [])),
         "",
         bold("🔄 Что изменилось:"),
-        result.get('changes', 'Нет изменений'),
+        _safe_str(result.get('changes', 'Нет изменений')),
         "",
         bold("⚠️ Новые требования:"),
-        result.get('new_requirements', 'Не обнаружено'),
+        _safe_str(result.get('new_requirements', 'Не обнаружено')),
         "",
         bold("📌 Согласовано:"),
-        result.get('agreed', ''),
+        _safe_str(result.get('agreed', '')),
         "",
         bold("❓ Открытые вопросы:"),
-        result.get('open_questions', 'Нет'),
+        _safe_str(result.get('open_questions', 'Нет')),
         "",
         bold("📅 Следующий созвон:"),
-        result.get('next_meeting', 'Не назначен'),
+        _safe_str(result.get('next_meeting', 'Не назначен')),
         sep="\n"
     )
 
     await _send_long_message(message, report)
 
 
-def _format_tasks(tasks: list) -> str:
+def _safe_str(value) -> str:
+    """Преобразует значение в строку, если это не строка"""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        return '\n'.join(f"• {item}" for item in value)
+    if isinstance(value, dict):
+        return str(value)
+    return str(value) if value else ''
+
+
+def _format_tasks(tasks) -> str:
     """Форматирование списка задач"""
     if not tasks:
         return "Нет задач"
+    if isinstance(tasks, str):
+        return tasks
     return "\n".join(f"• {task}" for task in tasks)
 
 
-def _format_list(items: list) -> str:
+def _format_list(items) -> str:
     """Форматирование списка"""
     if not items:
         return "Нет"
+    if isinstance(items, str):
+        return items
     return "\n".join(f"• {item}" for item in items)
 
 

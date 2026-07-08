@@ -5,6 +5,7 @@ AI Project Companion — Container Entry Point.
 """
 import os
 import sys
+import asyncio
 import logging
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -26,8 +27,12 @@ async def handle_webhook(request):
     try:
         body = await request.json()
         logger.info("Webhook received from Telegram")
-        result = await process_update(body)
-        return web.json_response(result)
+
+        # Возвращаем 200 мгновенно, чтобы Telegram не ретраил.
+        # Обработка (скачивание, ffmpeg, Groq, OpenRouter) идёт в фоне.
+        asyncio.ensure_future(process_update(body))
+
+        return web.json_response({"statusCode": 200, "body": ""})
     except Exception as e:
         logger.error(f"Webhook error: {e}", exc_info=True)
         return web.Response(text="OK")
