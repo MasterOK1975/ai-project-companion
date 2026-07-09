@@ -21,7 +21,10 @@ class Database:
         self._conn = None
 
     async def connect(self):
-        """Подключение к БД"""
+        """Подключение к БД — идемпотентно: если уже подключено, пропускает"""
+        if self._conn is not None:
+            return
+
         if self.database_url.startswith("sqlite"):
             import aiosqlite
             db_path = self.database_url.replace("sqlite:///", "")
@@ -221,6 +224,10 @@ class Database:
             await self._conn.commit()
 
     async def close(self):
-        """Закрытие соединения"""
+        """Закрытие соединения — безопасно, если уже закрыто"""
         if self._conn:
-            await self._conn.close()
+            try:
+                await self._conn.close()
+            except ValueError:
+                pass  # Уже закрыто — игнорируем
+            self._conn = None

@@ -39,6 +39,14 @@ SYSTEM_PROMPT = """Ты — AI Project Companion, профессиональны
 class ProjectAnalyzer:
     """Анализатор созвонов через AI-модели"""
 
+    # Цепочка fallback-моделей при 429 ошибке
+    FALLBACK_MODELS = [
+        "qwen/qwen3-next-80b-a3b-instruct:free",
+        "meta-llama/llama-3.3-70b-instruct:free",
+        "google/gemma-4-31b-it:free",
+        "qwen/qwen3-coder:free",
+    ]
+
     def __init__(self, api_key: str, model: str = "qwen/qwen3-next-80b-a3b-instruct:free"):
         self.api_key = api_key
         self.model = model
@@ -66,14 +74,33 @@ class ProjectAnalyzer:
         # Формируем промпт с учётом истории
         prompt = self._build_prompt(text, project_history, mode)
 
-        try:
-            response = await self._call_ai(prompt)
-            result = self._parse_response(response)
-            result['transcript'] = text
-            return result
-        except Exception as e:
-            logger.error(f"AI analysis error: {e}")
-            return self._fallback_analysis(text)
+        # Пробуем модели по цепочке при 429 ошибке
+        models_to_try = [self.model] + [m for m in self.FALLBACK_MODELS if m != self.model]
+
+        last_error = None
+        for model in models_to_try:
+            try:
+                response = await self._call_ai(prompt, model)
+                result = self._parse_response(response)
+                result['transcript'] = text
+                return result
+            except Exception as e:
+                error_str = str(e)
+                last_error = e
+                # Если 429 — пробуем следующую модель
+                if "429" in error_str or "Too Many Requests" in error_str or "ResourceExhausted" in error_str:
+                    logger.warning(f"Model {model} rate limited (429), trying fallback...")
+                    continue
+                # Если модель недоступна — пробуем следующую
+                if "404" in error_str or "unavailable" in error_str.lower():
+                    logger.warning(f"Model {model} unavailable, trying fallback...")
+                    continue
+                # Другие ошибки — не ретраим
+                logger.error(f"AI analysis error with model {model}: {e}")
+                break
+
+        logger.error(f"All models failed, last error: {last_error}")
+        return self._fallback_analysis(text)
 
     def _build_prompt(self, text: str, history: Optional[list], mode: str) -> str:
         """Формирование промпта для AI"""
@@ -104,7 +131,7 @@ class ProjectAnalyzer:
 
         return "\n".join(prompt_parts)
 
-    async def _call_ai(self, prompt: str) -> str:
+    async def _call_ai(self, prompt: str, model: str) -> str:
         """Вызов AI-модели через OpenRouter API"""
         import aiohttp
 
@@ -116,7 +143,7 @@ class ProjectAnalyzer:
         }
 
         payload = {
-            "model": self.model,
+            "model": model,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": prompt}

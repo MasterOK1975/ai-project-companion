@@ -738,7 +738,7 @@ def _format_list(items) -> str:
 async def process_update(update_data: dict) -> dict:
     """Обработка входящего обновления от Telegram"""
     try:
-        # Подключаемся к БД
+        # Подключаемся к БД (идемпотентно — если уже подключено, пропускает)
         await db.connect()
 
         # Создаём объект Update из данных
@@ -751,8 +751,6 @@ async def process_update(update_data: dict) -> dict:
     except Exception as e:
         logger.error(f"Error processing update: {e}")
         return {"statusCode": 200, "body": ""}
-    finally:
-        await db.close()
 
 
 def handler(event, context):
